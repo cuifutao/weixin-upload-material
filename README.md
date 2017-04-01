@@ -1,2 +1,3 @@
 # weixin-upload-material
-c# asp.net 4.0 
+c# asp.net 4.5
+use MultipartFormDataContent 
