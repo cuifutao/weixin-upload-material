@@ -32,7 +32,7 @@ namespace wxUploadMaterial
             return String.IsNullOrEmpty(contentType) ? "" : contentType;
         }
 
-        private static string PostFile(string url, string file, string title, string introduction)
+        public static string PostFile(string url, string file, string title, string introduction)
         {
             string contentType = GetContentType(file);
             if (String.IsNullOrEmpty(contentType))
