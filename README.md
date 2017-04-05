@@ -1,3 +1,7 @@
 # weixin-upload-material
-c# asp.net 4.5
-use MultipartFormDataContent 
+微信素材上传
+language c# 
+asp.net 4.5
+use MultipartFormDataContent
+
+errmsg:"media data missing"
