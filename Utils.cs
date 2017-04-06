@@ -1,15 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace WeiXin.Material
 {
     public static class Utils
     {
+        private static readonly IDictionary<string, string> FileFormats = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            {".gif","7173"},
+            {".jpg","255216"},
+            {".jpeg","255216"},
+            {".png","13780"},
+            {".bmp","6677"},
+            {".mp3","7368"},
+            {".wma","4838"},
+            {".wav","8273"},
+            {".amr","3533"},
+            {".mp4","00"},
+        };
         private static readonly IDictionary<string, string> ContentTypeExtensionsMapping = new Dictionary<string, string>
         {
             {".gif", "image/gif"},
@@ -90,6 +106,50 @@ namespace WeiXin.Material
             content.Add(fileContent);
             if (isAudioVideo)
                 content.Add(descriptionContent);
+
+            HttpClient client = new HttpClient();
+            Task<HttpResponseMessage> task = client.PostAsync(url, content);
+            return task.Result.Content.ReadAsStringAsync().Result;
+        }        
+
+        public static string GetContentType(byte[] bytes)
+        {
+            var fileCode = GetFileCode(bytes);
+            var item = FileFormats.First(i => i.Value.Equals(fileCode));
+            var extensions = item.Key;
+            return ContentTypeExtensionsMapping.ContainsKey(extensions)
+                ? ContentTypeExtensionsMapping[extensions]
+                : null;
+        }
+        private static string GetFileCode(byte[] bytes)
+        {
+            return bytes[0].ToString(CultureInfo.InvariantCulture) + bytes[1];
+        }
+
+        public static string GetRandomFileName(byte[] data)
+        {
+            var fileCode = GetFileCode(data);
+            var item = FileFormats.First(i => i.Value.Equals(fileCode));
+            return Guid.NewGuid().ToString("n") + item.Key;
+        }
+
+
+        private static string PostFile(string url, byte[] bytes)
+        {
+            string filename = GetRandomFileName(bytes);
+            string contentType = GetContentType(bytes);
+            if (String.IsNullOrEmpty(contentType))
+                return "file type is not supported";        
+            string boundary = "----" + DateTime.Now.Ticks.ToString("x");//微信要求boundary的值不可以存在双引号
+            MultipartFormDataContent content = new MultipartFormDataContent(boundary);
+            content.Headers.Remove("Content-Type");
+            content.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary);
+            ByteArrayContent dataContent = new ByteArrayContent(bytes);
+            dataContent.Headers.Remove("Content-Type");
+            dataContent.Headers.TryAddWithoutValidation("Content-Type", contentType);
+            dataContent.Headers.Remove("Content-Disposition");
+            dataContent.Headers.TryAddWithoutValidation("Content-Disposition", "form-data; name=\"media\"; filename=\"" + filename + "\"");
+            content.Add(dataContent, "media", filename);
 
             HttpClient client = new HttpClient();
             Task<HttpResponseMessage> task = client.PostAsync(url, content);
